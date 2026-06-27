@@ -48,7 +48,7 @@ SQUARE_WIDTH = 17          # ширина квадрата в пикселях (
 SQUARE_HEIGHT = 7         # высота квадрата в пикселях
 SQUARE_OFFSET_X = -2       # смещение по X относительно левого края ячейки
 SQUARE_OFFSET_Y = 4       # смещение по Y относительно верхнего края ячейки
-SQUARE_COLOR_RED = (255, 80, 80)     # цвет для active = 1
+SQUARE_COLOR_WHITE = (255, 255, 255)     # цвет для active = 1
 SQUARE_COLOR_GRAY = (150, 150, 150)  # цвет для active = 0
 
 
@@ -62,7 +62,7 @@ RECORD_WIDTH = 1920
 RECORD_HEIGHT = 1080
 
 # Параметры отображения
-RENDER_MODE = True          # True = запись в файл, False = только рендер
+RENDER_MODE = False          # True = запись в файл, False = только рендер
 
 
 
@@ -82,3 +82,6 @@ LOADER_START_TIME = 5.0      # когда начинается загрузка 
 LOADER_FINISH_TIME = 8.0    # когда загрузка полностью завершена (сек)
 LOADER_END_TIME = 9.23       # когда секвенция исчезает (сек)
 BRACKET_LOAD_SPEED = 0.3     # скорость внутри скобок (относительно внешней)
+
+FINAL_LOGS_APPEAR_TIME = 135
+FINAL_LOGS_DISAPPEAR_TIME = 138

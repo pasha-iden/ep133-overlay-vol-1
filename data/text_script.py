@@ -65,3 +65,15 @@ START_LOGS = [
     "> Scenes render: completed",
     "> Status: Ready."
 ]
+
+FINAL_LOGS = [
+    "+-------------------------------------------------------+",
+    "|                                                       |",
+    "|  > Overlay source: github.com/pashaIden/ep133-overlay |",
+    "|  > Built with Python / data-driven                    |",
+    "|  > Vibecoded with DeepSeek                            |",
+    "|                                                       |",
+    "|         Session closed. Thanks for listening.         |",
+    "|                                                       |",
+    "+-------------------------------------------------------+"
+]

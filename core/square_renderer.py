@@ -9,7 +9,7 @@ class SquareRenderer:
     def get_square_color(self, active):
         """Возвращает цвет квадратика в зависимости от active (1 = красный, 0 = серый)"""
         if active == 1:
-            return config.SQUARE_COLOR_RED
+            return config.SQUARE_COLOR_WHITE
         else:
             return config.SQUARE_COLOR_GRAY
 
