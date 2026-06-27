@@ -150,6 +150,11 @@ def main():
         sequence_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
         sequence_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
 
+        # Масштабируем отступы для ASCII (там где было 20)
+        ascii_offset_x = scale_coordinates(20, config.PREVIEW_WIDTH, screen_width)
+        ascii_offset_y = scale_coordinates(20, config.PREVIEW_HEIGHT, screen_height)
+        ascii_logs_offset = scale_coordinates(40, config.PREVIEW_HEIGHT, screen_height)  # отступ между INFO и логами
+
         scaled_square_width = int(config.SQUARE_WIDTH * scale_factor)
         scaled_square_height = int(config.SQUARE_HEIGHT * scale_factor)
         scaled_square_offset_x = int(config.SQUARE_OFFSET_X * scale_factor)
@@ -162,6 +167,7 @@ def main():
         print(f"Масштаб: {scale_factor}")
         print(f"Оверлей на экране: ({window_x}, {window_y}) {window_width}x{window_height}")
         print(f"Отступы внутри оверлея: sequence=({sequence_x}, {sequence_y}), text=({text_x}, {text_y})")
+        print(f"Отступы ASCII: ({ascii_offset_x}, {ascii_offset_y})")
 
         temp_output_path = "video/output/temp_result.mp4"
         os.makedirs("video/output", exist_ok=True)
@@ -209,7 +215,8 @@ def main():
                 # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
                 ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                 ascii_active = render_ascii_animation(
-                    ascii_surface, current_time, window_width, window_height, scaled_ascii_font_size
+                    ascii_surface, current_time, window_width, window_height,
+                    scaled_ascii_font_size, ascii_offset_x, ascii_offset_y, ascii_logs_offset
                 )
                 if ascii_active:
                     window_surface.blit(ascii_surface, (0, 0))
@@ -327,6 +334,11 @@ def main():
         sequence_x = config.SEQUENCE_X
         sequence_y = config.SEQUENCE_Y
 
+        # Для предпросмотра оригинальные координаты (20)
+        ascii_offset_x = 20
+        ascii_offset_y = 20
+        ascii_logs_offset = 40
+
         print(f"Оверлей: ({window_x}, {window_y}) {window_width}x{window_height}")
         print(f"Отступы: text=({text_x}, {text_y}), sequence=({sequence_x}, {sequence_y})")
 
@@ -357,7 +369,8 @@ def main():
             # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
             ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
             ascii_active = render_ascii_animation(
-                ascii_surface, current_time, window_width, window_height, config.FONT_SIZE_SEQUENCE
+                ascii_surface, current_time, window_width, window_height,
+                config.FONT_SIZE_SEQUENCE, ascii_offset_x, ascii_offset_y, ascii_logs_offset
             )
             if ascii_active:
                 window_surface.blit(ascii_surface, (0, 0))

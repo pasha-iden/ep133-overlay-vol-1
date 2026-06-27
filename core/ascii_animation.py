@@ -3,7 +3,8 @@ from data import config
 from data.text_script import ASCII_TEXT, INFO_LINES, START_LOGS
 
 
-def render_ascii_animation(surface, current_time, window_width, window_height, font_size=None):
+def render_ascii_animation(surface, current_time, window_width, window_height, font_size=None,
+                           offset_x=None, offset_y=None, logs_offset=None):
     """
     Рендерит ASCII-арт, INFO-строки и логи НА ПОВЕРХНОСТЬ surface.
     Возвращает True, если анимация активна.
@@ -14,13 +15,20 @@ def render_ascii_animation(surface, current_time, window_width, window_height, f
     if font_size is None:
         font_size = config.FONT_SIZE_SEQUENCE
 
+    if offset_x is None:
+        offset_x = 20
+    if offset_y is None:
+        offset_y = 20
+    if logs_offset is None:
+        logs_offset = 40
+
     font = pygame.font.SysFont(config.FONT_NAME, font_size)
     line_height = font_size + 2
 
     # Очищаем поверхность
     surface.fill(config.BACKGROUND_COLOR)
 
-    y_offset = 20
+    y_offset = offset_y
 
     total_ascii_lines = len(ASCII_TEXT)
     total_info_lines = len(INFO_LINES)
@@ -33,7 +41,7 @@ def render_ascii_animation(surface, current_time, window_width, window_height, f
             disappear_time = config.ASCII_DISAPPEAR_TIME + i * config.LINE_INTERVAL
             if current_time < disappear_time:
                 text_surface = font.render(line, True, config.COLOR_DARK)
-                surface.blit(text_surface, (20, y_offset))
+                surface.blit(text_surface, (offset_x, y_offset))
         y_offset += line_height
 
     y_offset += 20
@@ -47,11 +55,10 @@ def render_ascii_animation(surface, current_time, window_width, window_height, f
             disappear_time = config.ASCII_DISAPPEAR_TIME + i * config.LINE_INTERVAL
             if current_time < disappear_time:
                 text_surface = font.render(line, True, config.COLOR_DARK)
-                surface.blit(text_surface, (20, y_offset))
+                surface.blit(text_surface, (offset_x, y_offset))
         y_offset += line_height
 
-    # ===== ОТСТУП МЕЖДУ INFO И ЛОГАМИ =====
-    y_offset += 40
+    y_offset += logs_offset
 
     # ===== Логи (бегущая строка) =====
     logs_start_time = config.LOGS_START_TIME
@@ -90,7 +97,7 @@ def render_ascii_animation(surface, current_time, window_width, window_height, f
                 log_index = current_log_index - j
                 if log_index >= 0 and log_index < total_logs:
                     text_surface = font.render(START_LOGS[log_index], True, config.COLOR_DARK)
-                    surface.blit(text_surface, (20, y_offset - j * line_height))
+                    surface.blit(text_surface, (offset_x, y_offset - j * line_height))
 
     # Проверяем, что анимация полностью завершена (включая PRESS PLAY)
     animation_end_time = config.ASCII_DISAPPEAR_TIME + total_logs * config.LOGS_INTERVAL + 0.25
