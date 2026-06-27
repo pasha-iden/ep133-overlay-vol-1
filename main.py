@@ -8,6 +8,7 @@ from moviepy import VideoFileClip, AudioFileClip
 from data import config
 from data import sequence
 from core.sequence_renderer import SequenceRenderer
+from core.sequence_loader import SequenceLoader
 from core.text_renderer import TextRenderer
 from core.ascii_animation import render_ascii_animation
 from core.shadow_renderer import create_shadow
@@ -139,7 +140,6 @@ def main():
 
         scale_factor = screen_width / config.PREVIEW_WIDTH
 
-        # Масштабируем координаты
         window_x = scale_coordinates(config.WINDOW_X, config.PREVIEW_WIDTH, screen_width)
         window_y = scale_coordinates(config.WINDOW_Y, config.PREVIEW_HEIGHT, screen_height)
         window_width = scale_coordinates(config.WINDOW_WIDTH, config.PREVIEW_WIDTH, screen_width)
@@ -147,20 +147,27 @@ def main():
 
         text_x = scale_coordinates(config.TEXT_X, config.PREVIEW_WIDTH, screen_width)
         text_y = scale_coordinates(config.TEXT_Y, config.PREVIEW_HEIGHT, screen_height)
-        sequence_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
-        sequence_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
 
-        # Масштабируем параметры квадратиков
+        # Для прогружаемой секвенции (рисуется на экран, нужны абсолютные координаты)
+        loading_sequence_x = window_x + scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
+        loading_sequence_y = window_y + scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
+
+        # Для готовой секвенции (рисуется внутри оверлея, нужны относительные координаты)
+        sequence_offset_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
+        sequence_offset_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
+
         scaled_square_width = int(config.SQUARE_WIDTH * scale_factor)
         scaled_square_height = int(config.SQUARE_HEIGHT * scale_factor)
         scaled_square_offset_x = int(config.SQUARE_OFFSET_X * scale_factor)
         scaled_square_offset_y = int(config.SQUARE_OFFSET_Y * scale_factor)
 
-        # Масштабируем шрифты
         scaled_text_size = int(config.FONT_SIZE_TEXT * scale_factor)
         scaled_sequence_size = int(config.FONT_SIZE_SEQUENCE * scale_factor)
 
         print(f"Масштаб: {scale_factor}")
+        print(f"Оверлей: ({window_x}, {window_y}) {window_width}x{window_height}")
+        print(f"Прогружаемая секвенция: ({loading_sequence_x}, {loading_sequence_y})")
+        print(f"Отступы готовой секвенции: ({sequence_offset_x}, {sequence_offset_y})")
 
         temp_output_path = "video/output/temp_result.mp4"
         os.makedirs("video/output", exist_ok=True)
@@ -170,11 +177,9 @@ def main():
 
         screen = pygame.Surface((screen_width, screen_height))
 
-        # Шрифты с увеличенным размером
         text_font = pygame.font.SysFont(config.FONT_NAME, scaled_text_size)
         sequence_font = pygame.font.SysFont(config.FONT_NAME, scaled_sequence_size)
 
-        # Сохраняем оригинальные значения и подменяем параметры квадратиков
         original_square_width = config.SQUARE_WIDTH
         original_square_height = config.SQUARE_HEIGHT
         original_square_offset_x = config.SQUARE_OFFSET_X
@@ -186,6 +191,7 @@ def main():
         config.SQUARE_OFFSET_Y = scaled_square_offset_y
 
         renderer = SequenceRenderer(sequence_font)
+        loader = SequenceLoader(sequence_font)
         text_renderer = TextRenderer(text_font)
         lines = sequence.SEQUENCE
 
@@ -203,14 +209,20 @@ def main():
                 else:
                     screen.fill((0, 0, 0))
 
-                # ===== ASCII АНИМАЦИЯ (ЗАПИСЬ) =====
+                # ===== 1. РИСУЕМ ASCII-АНИМАЦИЮ =====
                 ascii_active = render_ascii_animation(
                     screen, current_time, window_x, window_y, window_width, window_height
                 )
 
-                # Если анимация НЕ активна — рисуем обычный оверлей
+                # ===== 2. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ (прямо на экран) =====
+                loading_surface = loader.render_loading_sequence(
+                    lines, current_time, loading_sequence_x, loading_sequence_y, config.SEQUENCE_SCALE
+                )
+                if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
+                    screen.blit(loading_surface, (loading_sequence_x, loading_sequence_y))
+
+                # ===== 3. РИСУЕМ ОВЕРЛЕЙ (ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ ASCII-АНИМАЦИИ) =====
                 if not ascii_active:
-                    # ========== ОВЕРЛЕЙ С АНИМАЦИЕЙ РАСКРЫТИЯ ==========
                     window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                     pygame.draw.rect(window_surface, config.BACKGROUND_COLOR, window_surface.get_rect())
 
@@ -223,21 +235,19 @@ def main():
                             window_surface.blit(text_surface, (text_x, y_offset))
                             y_offset += text_surface.get_height() + 5
 
+                    # Готовая секвенция (рисуется внутри оверлея с относительными координатами)
                     sequence_surface = renderer.render_sequence(lines, current_time)
-                    window_surface.blit(sequence_surface, (sequence_x, sequence_y))
+                    if sequence_surface is not None:
+                        window_surface.blit(sequence_surface, (sequence_offset_x, sequence_offset_y))
 
-                    # Применяем анимацию раскрытия
                     if current_time < config.WINDOW_APPEAR_TIME:
-                        # Оверлей ещё не должен показываться
                         pass
                     else:
-                        # Вычисляем прогресс анимации
                         elapsed = current_time - config.WINDOW_APPEAR_TIME
                         progress = min(elapsed / config.ANIMATION_DURATION, 1.0)
                         current_height = int(window_height * progress)
 
                         if current_height > 0:
-                            # Обрезаем оверлей: показываем только верхнюю часть
                             clip_rect = pygame.Rect(0, 0, window_width, current_height)
                             screen.blit(window_surface, (window_x, window_y), clip_rect)
 
@@ -254,7 +264,6 @@ def main():
         except Exception as e:
             print(f"\n\nОшибка: {e}")
         finally:
-            # Восстанавливаем оригинальные значения
             config.SQUARE_WIDTH = original_square_width
             config.SQUARE_HEIGHT = original_square_height
             config.SQUARE_OFFSET_X = original_square_offset_x
@@ -304,7 +313,9 @@ def main():
 
         text_font = pygame.font.SysFont(config.FONT_NAME, config.FONT_SIZE_TEXT)
         sequence_font = pygame.font.SysFont(config.FONT_NAME, config.FONT_SIZE_SEQUENCE)
+
         renderer = SequenceRenderer(sequence_font)
+        loader = SequenceLoader(sequence_font)
         text_renderer = TextRenderer(text_font)
         lines = sequence.SEQUENCE
 
@@ -314,8 +325,18 @@ def main():
         window_height = config.WINDOW_HEIGHT
         text_x = config.TEXT_X
         text_y = config.TEXT_Y
-        sequence_x = config.SEQUENCE_X
-        sequence_y = config.SEQUENCE_Y
+
+        # Для прогружаемой секвенции (прямо на экран)
+        loading_sequence_x = window_x + config.SEQUENCE_X
+        loading_sequence_y = window_y + config.SEQUENCE_Y
+
+        # Для готовой секвенции (внутри оверлея)
+        sequence_offset_x = config.SEQUENCE_X
+        sequence_offset_y = config.SEQUENCE_Y
+
+        print(f"Оверлей: ({window_x}, {window_y}) {window_width}x{window_height}")
+        print(f"Прогружаемая секвенция: ({loading_sequence_x}, {loading_sequence_y})")
+        print(f"Отступы готовой секвенции: ({sequence_offset_x}, {sequence_offset_y})")
 
         clock = pygame.time.Clock()
         running = True
@@ -338,14 +359,20 @@ def main():
             else:
                 screen.fill((0, 0, 0))
 
-            # ===== ASCII АНИМАЦИЯ (ПРЕДПРОСМОТР) =====
+            # ===== 1. РИСУЕМ ASCII-АНИМАЦИЮ =====
             ascii_active = render_ascii_animation(
                 screen, current_time, window_x, window_y, window_width, window_height
             )
 
-            # Если анимация НЕ активна — рисуем обычный оверлей
+            # ===== 2. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ (прямо на экран) =====
+            loading_surface = loader.render_loading_sequence(
+                lines, current_time, loading_sequence_x, loading_sequence_y, config.SEQUENCE_SCALE
+            )
+            if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
+                screen.blit(loading_surface, (loading_sequence_x, loading_sequence_y))
+
+            # ===== 3. РИСУЕМ ОВЕРЛЕЙ (ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ ASCII-АНИМАЦИИ) =====
             if not ascii_active:
-                # ========== ОВЕРЛЕЙ С АНИМАЦИЕЙ РАСКРЫТИЯ ==========
                 window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                 pygame.draw.rect(window_surface, config.BACKGROUND_COLOR, window_surface.get_rect())
 
@@ -358,12 +385,12 @@ def main():
                         window_surface.blit(text_surface, (text_x, y_offset))
                         y_offset += text_surface.get_height() + 5
 
+                # Готовая секвенция (внутри оверлея с относительными координатами)
                 sequence_surface = renderer.render_sequence(lines, current_time)
-                window_surface.blit(sequence_surface, (sequence_x, sequence_y))
+                if sequence_surface is not None:
+                    window_surface.blit(sequence_surface, (sequence_offset_x, sequence_offset_y))
 
-                # Применяем анимацию раскрытия
                 if current_time < config.WINDOW_APPEAR_TIME:
-                    # Оверлей ещё не должен показываться
                     pass
                 else:
                     elapsed = current_time - config.WINDOW_APPEAR_TIME
