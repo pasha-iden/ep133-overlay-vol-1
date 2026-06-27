@@ -3,19 +3,21 @@ from data import config
 from data.text_script import ASCII_TEXT, INFO_LINES, START_LOGS
 
 
-def render_ascii_animation(screen, current_time, window_x, window_y, window_width, window_height):
+def render_ascii_animation(surface, current_time, window_width, window_height, font_size=None):
     """
-    Рендерит ASCII-арт, INFO-строки и логи.
+    Рендерит ASCII-арт, INFO-строки и логи НА ПОВЕРХНОСТЬ surface.
     Возвращает True, если анимация активна.
     """
     if current_time < config.ASCII_APPEAR_TIME:
         return False
 
-    font_size = config.FONT_SIZE_SEQUENCE
+    if font_size is None:
+        font_size = config.FONT_SIZE_SEQUENCE
+
     font = pygame.font.SysFont(config.FONT_NAME, font_size)
     line_height = font_size + 2
 
-    surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+    # Очищаем поверхность
     surface.fill(config.BACKGROUND_COLOR)
 
     y_offset = 20
@@ -76,8 +78,6 @@ def render_ascii_animation(screen, current_time, window_x, window_y, window_widt
             surface.blit(status_surface, (status_x, status_y))
             surface.blit(play_surface, (play_x, play_y))
 
-            screen.blit(surface, (window_x, window_y))
-
             animation_end_time = config.ASCII_DISAPPEAR_TIME + total_logs * config.LOGS_INTERVAL + 0.25
             if current_time > animation_end_time:
                 return False
@@ -91,8 +91,6 @@ def render_ascii_animation(screen, current_time, window_x, window_y, window_widt
                 if log_index >= 0 and log_index < total_logs:
                     text_surface = font.render(START_LOGS[log_index], True, config.COLOR_DARK)
                     surface.blit(text_surface, (20, y_offset - j * line_height))
-
-    screen.blit(surface, (window_x, window_y))
 
     # Проверяем, что анимация полностью завершена (включая PRESS PLAY)
     animation_end_time = config.ASCII_DISAPPEAR_TIME + total_logs * config.LOGS_INTERVAL + 0.25

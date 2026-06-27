@@ -62,7 +62,7 @@ RECORD_WIDTH = 1920
 RECORD_HEIGHT = 1080
 
 # Параметры отображения
-RENDER_MODE = True          # True = запись в файл, False = только рендер
+RENDER_MODE = False          # True = запись в файл, False = только рендер
 
 
 

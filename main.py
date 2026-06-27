@@ -147,14 +147,8 @@ def main():
 
         text_x = scale_coordinates(config.TEXT_X, config.PREVIEW_WIDTH, screen_width)
         text_y = scale_coordinates(config.TEXT_Y, config.PREVIEW_HEIGHT, screen_height)
-
-        # Для прогружаемой секвенции (рисуется на экран, нужны абсолютные координаты)
-        loading_sequence_x = window_x + scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
-        loading_sequence_y = window_y + scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
-
-        # Для готовой секвенции (рисуется внутри оверлея, нужны относительные координаты)
-        sequence_offset_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
-        sequence_offset_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
+        sequence_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
+        sequence_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
 
         scaled_square_width = int(config.SQUARE_WIDTH * scale_factor)
         scaled_square_height = int(config.SQUARE_HEIGHT * scale_factor)
@@ -163,11 +157,11 @@ def main():
 
         scaled_text_size = int(config.FONT_SIZE_TEXT * scale_factor)
         scaled_sequence_size = int(config.FONT_SIZE_SEQUENCE * scale_factor)
+        scaled_ascii_font_size = int(config.FONT_SIZE_SEQUENCE * scale_factor)
 
         print(f"Масштаб: {scale_factor}")
-        print(f"Оверлей: ({window_x}, {window_y}) {window_width}x{window_height}")
-        print(f"Прогружаемая секвенция: ({loading_sequence_x}, {loading_sequence_y})")
-        print(f"Отступы готовой секвенции: ({sequence_offset_x}, {sequence_offset_y})")
+        print(f"Оверлей на экране: ({window_x}, {window_y}) {window_width}x{window_height}")
+        print(f"Отступы внутри оверлея: sequence=({sequence_x}, {sequence_y}), text=({text_x}, {text_y})")
 
         temp_output_path = "video/output/temp_result.mp4"
         os.makedirs("video/output", exist_ok=True)
@@ -209,21 +203,26 @@ def main():
                 else:
                     screen.fill((0, 0, 0))
 
-                # ===== 1. РИСУЕМ ASCII-АНИМАЦИЮ =====
-                ascii_active = render_ascii_animation(
-                    screen, current_time, window_x, window_y, window_width, window_height
-                )
+                # ===== 1. СОЗДАЁМ ПОВЕРХНОСТЬ ОВЕРЛЕЯ =====
+                window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
 
-                # ===== 2. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ (прямо на экран) =====
+                # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
+                ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+                ascii_active = render_ascii_animation(
+                    ascii_surface, current_time, window_width, window_height, scaled_ascii_font_size
+                )
+                if ascii_active:
+                    window_surface.blit(ascii_surface, (0, 0))
+
+                # ===== 3. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ =====
                 loading_surface = loader.render_loading_sequence(
-                    lines, current_time, loading_sequence_x, loading_sequence_y, config.SEQUENCE_SCALE
+                    lines, current_time, sequence_x, sequence_y, config.SEQUENCE_SCALE
                 )
                 if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
-                    screen.blit(loading_surface, (loading_sequence_x, loading_sequence_y))
+                    window_surface.blit(loading_surface, (sequence_x, sequence_y))
 
-                # ===== 3. РИСУЕМ ОВЕРЛЕЙ (ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ ASCII-АНИМАЦИИ) =====
+                # ===== 4. РИСУЕМ ТЕКСТ И ГОТОВУЮ СЕКВЕНЦИЮ =====
                 if not ascii_active:
-                    window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                     pygame.draw.rect(window_surface, config.BACKGROUND_COLOR, window_surface.get_rect())
 
                     active_text = text_renderer.get_active_text(current_time)
@@ -235,21 +234,21 @@ def main():
                             window_surface.blit(text_surface, (text_x, y_offset))
                             y_offset += text_surface.get_height() + 5
 
-                    # Готовая секвенция (рисуется внутри оверлея с относительными координатами)
                     sequence_surface = renderer.render_sequence(lines, current_time)
                     if sequence_surface is not None:
-                        window_surface.blit(sequence_surface, (sequence_offset_x, sequence_offset_y))
+                        window_surface.blit(sequence_surface, (sequence_x, sequence_y))
 
-                    if current_time < config.WINDOW_APPEAR_TIME:
-                        pass
-                    else:
-                        elapsed = current_time - config.WINDOW_APPEAR_TIME
-                        progress = min(elapsed / config.ANIMATION_DURATION, 1.0)
-                        current_height = int(window_height * progress)
+                # ===== 5. РИСУЕМ ОВЕРЛЕЙ НА ЭКРАН =====
+                if current_time < config.WINDOW_APPEAR_TIME:
+                    pass
+                else:
+                    elapsed = current_time - config.WINDOW_APPEAR_TIME
+                    progress = min(elapsed / config.ANIMATION_DURATION, 1.0)
+                    current_height = int(window_height * progress)
 
-                        if current_height > 0:
-                            clip_rect = pygame.Rect(0, 0, window_width, current_height)
-                            screen.blit(window_surface, (window_x, window_y), clip_rect)
+                    if current_height > 0:
+                        clip_rect = pygame.Rect(0, 0, window_width, current_height)
+                        screen.blit(window_surface, (window_x, window_y), clip_rect)
 
                 frame_data = pygame.surfarray.array3d(screen)
                 frame_data = np.rot90(frame_data)
@@ -325,18 +324,11 @@ def main():
         window_height = config.WINDOW_HEIGHT
         text_x = config.TEXT_X
         text_y = config.TEXT_Y
-
-        # Для прогружаемой секвенции (прямо на экран)
-        loading_sequence_x = window_x + config.SEQUENCE_X
-        loading_sequence_y = window_y + config.SEQUENCE_Y
-
-        # Для готовой секвенции (внутри оверлея)
-        sequence_offset_x = config.SEQUENCE_X
-        sequence_offset_y = config.SEQUENCE_Y
+        sequence_x = config.SEQUENCE_X
+        sequence_y = config.SEQUENCE_Y
 
         print(f"Оверлей: ({window_x}, {window_y}) {window_width}x{window_height}")
-        print(f"Прогружаемая секвенция: ({loading_sequence_x}, {loading_sequence_y})")
-        print(f"Отступы готовой секвенции: ({sequence_offset_x}, {sequence_offset_y})")
+        print(f"Отступы: text=({text_x}, {text_y}), sequence=({sequence_x}, {sequence_y})")
 
         clock = pygame.time.Clock()
         running = True
@@ -359,21 +351,26 @@ def main():
             else:
                 screen.fill((0, 0, 0))
 
-            # ===== 1. РИСУЕМ ASCII-АНИМАЦИЮ =====
-            ascii_active = render_ascii_animation(
-                screen, current_time, window_x, window_y, window_width, window_height
-            )
+            # ===== 1. СОЗДАЁМ ПОВЕРХНОСТЬ ОВЕРЛЕЯ =====
+            window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
 
-            # ===== 2. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ (прямо на экран) =====
+            # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
+            ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
+            ascii_active = render_ascii_animation(
+                ascii_surface, current_time, window_width, window_height, config.FONT_SIZE_SEQUENCE
+            )
+            if ascii_active:
+                window_surface.blit(ascii_surface, (0, 0))
+
+            # ===== 3. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ =====
             loading_surface = loader.render_loading_sequence(
-                lines, current_time, loading_sequence_x, loading_sequence_y, config.SEQUENCE_SCALE
+                lines, current_time, sequence_x, sequence_y, config.SEQUENCE_SCALE
             )
             if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
-                screen.blit(loading_surface, (loading_sequence_x, loading_sequence_y))
+                window_surface.blit(loading_surface, (sequence_x, sequence_y))
 
-            # ===== 3. РИСУЕМ ОВЕРЛЕЙ (ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ ASCII-АНИМАЦИИ) =====
+            # ===== 4. РИСУЕМ ТЕКСТ И ГОТОВУЮ СЕКВЕНЦИЮ =====
             if not ascii_active:
-                window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                 pygame.draw.rect(window_surface, config.BACKGROUND_COLOR, window_surface.get_rect())
 
                 active_text = text_renderer.get_active_text(current_time)
@@ -385,21 +382,21 @@ def main():
                         window_surface.blit(text_surface, (text_x, y_offset))
                         y_offset += text_surface.get_height() + 5
 
-                # Готовая секвенция (внутри оверлея с относительными координатами)
                 sequence_surface = renderer.render_sequence(lines, current_time)
                 if sequence_surface is not None:
-                    window_surface.blit(sequence_surface, (sequence_offset_x, sequence_offset_y))
+                    window_surface.blit(sequence_surface, (sequence_x, sequence_y))
 
-                if current_time < config.WINDOW_APPEAR_TIME:
-                    pass
-                else:
-                    elapsed = current_time - config.WINDOW_APPEAR_TIME
-                    progress = min(elapsed / config.ANIMATION_DURATION, 1.0)
-                    current_height = int(window_height * progress)
+            # ===== 5. РИСУЕМ ОВЕРЛЕЙ НА ЭКРАН =====
+            if current_time < config.WINDOW_APPEAR_TIME:
+                pass
+            else:
+                elapsed = current_time - config.WINDOW_APPEAR_TIME
+                progress = min(elapsed / config.ANIMATION_DURATION, 1.0)
+                current_height = int(window_height * progress)
 
-                    if current_height > 0:
-                        clip_rect = pygame.Rect(0, 0, window_width, current_height)
-                        screen.blit(window_surface, (window_x, window_y), clip_rect)
+                if current_height > 0:
+                    clip_rect = pygame.Rect(0, 0, window_width, current_height)
+                    screen.blit(window_surface, (window_x, window_y), clip_rect)
 
             pygame.display.flip()
             clock.tick(60)
