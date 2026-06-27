@@ -1,7 +1,6 @@
 import pygame
 from data import config
-from data.sequence_events import SQUARE_EVENTS
-from core.square_renderer import SquareRenderer
+from data import sequence
 
 
 class SequenceLoader:
@@ -10,7 +9,6 @@ class SequenceLoader:
         font_size = font.get_height()
         self.bold_font = pygame.font.SysFont('Courier New', font_size, bold=True)
         self.char_width = self.get_max_char_width()
-        self.square_renderer = SquareRenderer(font)
         self.star_positions = {}
 
     def get_max_char_width(self):
@@ -127,32 +125,21 @@ class SequenceLoader:
         return visible
 
     def render_loading_sequence(self, sequence_lines, current_time, pos_x, pos_y, scale_factor=1.0):
-        """
-        Рендерит прогружаемую секвенцию
-        Возвращает True, если загрузка активна, False если завершена
-        """
-        # Проверяем, началась ли загрузка
         if current_time < config.LOADER_START_TIME:
-            return False
+            return None
 
-        # Проверяем, не закончилась ли загрузка
         if current_time > config.LOADER_END_TIME:
-            return False
+            return None
 
-        # Вычисляем прогресс загрузки (0.0 - 1.0)
         total_duration = config.LOADER_FINISH_TIME - config.LOADER_START_TIME
         if total_duration <= 0:
             progress = 1.0
         else:
             progress = min((current_time - config.LOADER_START_TIME) / total_duration, 1.0)
 
-        # Обрабатываем строки
         processed_lines = self.process_lines(sequence_lines)
-
-        # Рендерим с прогрессом
         raw_surface = self._render_raw_with_progress(processed_lines, progress)
 
-        # Масштабируем
         if scale_factor != 1.0:
             new_width = max(1, int(raw_surface.get_width() * scale_factor))
             new_height = raw_surface.get_height()
@@ -177,9 +164,8 @@ class SequenceLoader:
         slow_speed = config.BRACKET_LOAD_SPEED
 
         for line_idx, line in enumerate(sequence_lines):
-            # Каждая строка имеет свой прогресс с небольшим разбросом
-            speed_modifier = 0.7 + (line_idx % 5) * 0.1
-            line_progress = min(progress * speed_modifier, 1.0)
+            # УБИРАЕМ РАЗБРОС СКОРОСТЕЙ — все строки загружаются одинаково
+            line_progress = min(progress, 1.0)
 
             visible_chars = self.get_visible_length(line, line_progress, slow_speed)
             visible_line = line[:visible_chars]
