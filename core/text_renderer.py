@@ -1,4 +1,5 @@
 from data.text_script import TEXT_BLOCKS
+from data import config
 
 
 class TextRenderer:
@@ -6,21 +7,23 @@ class TextRenderer:
         self.font = font
 
     def get_active_text(self, current_time):
-        """
-        Возвращает активный текстовый блок и прогресс печатания
-        """
         for block in TEXT_BLOCKS:
             if block["start"] <= current_time <= block["end"]:
                 text = block["text"]
 
-                # Эффект печатания
                 if block.get("typing_effect", False):
-                    typing_duration = block.get("typing_duration", 1.0)
+                    # Если задана длительность — используем её
+                    if "typing_duration" in block:
+                        typing_duration = block["typing_duration"]
+                    else:
+                        # Иначе вычисляем из скорости
+                        char_count = len(text)
+                        typing_duration = char_count / (config.TYPING_SPEED / 60)
+
                     elapsed = current_time - block["start"]
 
                     if elapsed < typing_duration:
                         progress = elapsed / typing_duration
-                        # Обрезаем текст по символам
                         char_count = int(len(text) * progress)
                         if char_count < len(text):
                             text = text[:char_count]
