@@ -1,3 +1,4 @@
+# core/sequence_loader.py
 import pygame
 from data import config
 from data import sequence
@@ -164,7 +165,6 @@ class SequenceLoader:
         slow_speed = config.BRACKET_LOAD_SPEED
 
         for line_idx, line in enumerate(sequence_lines):
-            # УБИРАЕМ РАЗБРОС СКОРОСТЕЙ — все строки загружаются одинаково
             line_progress = min(progress, 1.0)
 
             visible_chars = self.get_visible_length(line, line_progress, slow_speed)

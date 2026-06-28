@@ -151,13 +151,9 @@ def main():
         sequence_x = scale_coordinates(config.SEQUENCE_X, config.PREVIEW_WIDTH, screen_width)
         sequence_y = scale_coordinates(config.SEQUENCE_Y, config.PREVIEW_HEIGHT, screen_height)
 
-        # Масштабируем отступы для ASCII (там где было 20)
         ascii_offset_x = scale_coordinates(20, config.PREVIEW_WIDTH, screen_width)
         ascii_offset_y = scale_coordinates(20, config.PREVIEW_HEIGHT, screen_height)
         ascii_logs_offset = scale_coordinates(40, config.PREVIEW_HEIGHT, screen_height)
-
-        # Масштабируем скейл секвенции для записи (пропорциональный)
-        sequence_scale_record = config.SEQUENCE_SCALE * scale_factor
 
         scaled_square_width = int(config.SQUARE_WIDTH * scale_factor)
         scaled_square_height = int(config.SQUARE_HEIGHT * scale_factor)
@@ -169,7 +165,6 @@ def main():
         scaled_ascii_font_size = int(config.FONT_SIZE_SEQUENCE * scale_factor)
 
         print(f"Масштаб: {scale_factor}")
-        print(f"Скейл секвенции для записи: {sequence_scale_record}")
         print(f"Оверлей на экране: ({window_x}, {window_y}) {window_width}x{window_height}")
         print(f"Отступы внутри оверлея: sequence=({sequence_x}, {sequence_y}), text=({text_x}, {text_y})")
         print(f"Отступы ASCII: ({ascii_offset_x}, {ascii_offset_y})")
@@ -214,10 +209,8 @@ def main():
                 else:
                     screen.fill((0, 0, 0))
 
-                # ===== 1. СОЗДАЁМ ПОВЕРХНОСТЬ ОВЕРЛЕЯ =====
                 window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
 
-                # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
                 ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
                 ascii_active = render_ascii_animation(
                     ascii_surface, current_time, window_width, window_height,
@@ -226,22 +219,19 @@ def main():
                 if ascii_active:
                     window_surface.blit(ascii_surface, (0, 0))
 
-                # ===== 3. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ (с масштабом для записи) =====
+                # ===== ПРОГРУЖАЕМАЯ СЕКВЕНЦИЯ — ТАК ЖЕ, КАК ГОТОВАЯ (ТОЛЬКО SEQUENCE_SCALE) =====
                 loading_surface = loader.render_loading_sequence(
-                    lines, current_time, sequence_x, sequence_y, sequence_scale_record
+                    lines, current_time, sequence_x, sequence_y, config.SEQUENCE_SCALE
                 )
                 if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
                     window_surface.blit(loading_surface, (sequence_x, sequence_y))
 
-                # ===== 4. РИСУЕМ ТЕКСТ И ГОТОВУЮ СЕКВЕНЦИЮ =====
-                # Проверяем, активны ли финальные логи
                 final_logs_active = render_final_logs(
                     screen, current_time, window_x, window_y, window_width, window_height,
                     scaled_ascii_font_size, ascii_offset_x, ascii_offset_y
                 )
 
                 if not final_logs_active:
-                    # Только если финальные логи НЕ активны — рисуем текст и секвенцию
                     if not ascii_active:
                         pygame.draw.rect(window_surface, config.BACKGROUND_COLOR, window_surface.get_rect())
 
@@ -254,12 +244,11 @@ def main():
                                 window_surface.blit(text_surface, (text_x, y_offset))
                                 y_offset += text_surface.get_height() + 5
 
-                        # Готовая секвенция с масштабом для записи
-                        sequence_surface = renderer.render_sequence(lines, current_time, sequence_scale_record)
+                        # ===== ГОТОВАЯ СЕКВЕНЦИЯ — ТОЛЬКО SEQUENCE_SCALE =====
+                        sequence_surface = renderer.render_sequence(lines, current_time)
                         if sequence_surface is not None:
                             window_surface.blit(sequence_surface, (sequence_x, sequence_y))
 
-                # ===== 5. РИСУЕМ ОВЕРЛЕЙ НА ЭКРАН =====
                 if current_time < config.WINDOW_APPEAR_TIME:
                     pass
                 else:
@@ -348,7 +337,6 @@ def main():
         sequence_x = config.SEQUENCE_X
         sequence_y = config.SEQUENCE_Y
 
-        # Для предпросмотра оригинальные координаты (20)
         ascii_offset_x = 20
         ascii_offset_y = 20
         ascii_logs_offset = 40
@@ -377,10 +365,8 @@ def main():
             else:
                 screen.fill((0, 0, 0))
 
-            # ===== 1. СОЗДАЁМ ПОВЕРХНОСТЬ ОВЕРЛЕЯ =====
             window_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
 
-            # ===== 2. РИСУЕМ ASCII-АНИМАЦИЮ НА ОВЕРЛЕЙ =====
             ascii_surface = pygame.Surface((window_width, window_height), pygame.SRCALPHA)
             ascii_active = render_ascii_animation(
                 ascii_surface, current_time, window_width, window_height,
@@ -389,15 +375,13 @@ def main():
             if ascii_active:
                 window_surface.blit(ascii_surface, (0, 0))
 
-            # ===== 3. РИСУЕМ ПРОГРУЖАЕМУЮ СЕКВЕНЦИЮ =====
+            # ===== ПРОГРУЖАЕМАЯ СЕКВЕНЦИЯ — ТАК ЖЕ, КАК ГОТОВАЯ =====
             loading_surface = loader.render_loading_sequence(
                 lines, current_time, sequence_x, sequence_y, config.SEQUENCE_SCALE
             )
             if loading_surface is not None and isinstance(loading_surface, pygame.Surface):
                 window_surface.blit(loading_surface, (sequence_x, sequence_y))
 
-            # ===== 4. РИСУЕМ ТЕКСТ И ГОТОВУЮ СЕКВЕНЦИЮ =====
-            # Проверяем, активны ли финальные логи
             final_logs_active = render_final_logs(
                 screen, current_time, window_x, window_y, window_width, window_height,
                 config.FONT_SIZE_SEQUENCE, ascii_offset_x, ascii_offset_y
@@ -416,11 +400,11 @@ def main():
                             window_surface.blit(text_surface, (text_x, y_offset))
                             y_offset += text_surface.get_height() + 5
 
+                    # ===== ГОТОВАЯ СЕКВЕНЦИЯ =====
                     sequence_surface = renderer.render_sequence(lines, current_time)
                     if sequence_surface is not None:
                         window_surface.blit(sequence_surface, (sequence_x, sequence_y))
 
-            # ===== 5. РИСУЕМ ОВЕРЛЕЙ НА ЭКРАН =====
             if current_time < config.WINDOW_APPEAR_TIME:
                 pass
             else:
