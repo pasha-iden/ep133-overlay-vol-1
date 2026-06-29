@@ -28,8 +28,8 @@ In config.py, set RENDER_MODE:
 On first run, the script will download and install portable ffmpeg.
 
 ### Video  
-YouTube: [ссылка]  
-Instagram: [ссылка]
+YouTube: https://youtu.be/iA8bkf65opI  
+Instagram: https://www.instagram.com/reel/DaLHoFZMNXs/?igsh=Z3F5dm5lOHZmajl0
 
 ### Author  
 Pasha Iden  
