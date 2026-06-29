@@ -1,6 +1,3 @@
-# sequence_events.py
-# Все значения start и end смещены назад на 10.3 секунды
-
 SQUARE_EVENTS = [
     {"start": 9.230,  "end": 12.021, "line": 0, "place": 1, "active": 1},
     {"start": 12.021,  "end": 14.811, "line": 0, "place": 2, "active": 1}, # старая сцена 1

@@ -1,11 +1,10 @@
-# main.py
 import pygame
 import sys
 import os
 import cv2
 import numpy as np
 import subprocess
-from moviepy import VideoFileClip, AudioFileClip
+from moviepy import VideoFileClip
 from data import config
 from data import sequence
 from core.sequence_renderer import SequenceRenderer

@@ -1,4 +1,3 @@
-# core/sequence_loader.py
 import pygame
 from data import config
 from data import sequence

@@ -67,13 +67,13 @@ START_LOGS = [
 ]
 
 FINAL_LOGS = [
-    "+-------------------------------------------------------+",
-    "|                                                       |",
-    "|  > Overlay source: github.com/pashaIden/ep133-overlay |",
-    "|  > Built with Python / data-driven                    |",
-    "|  > Vibecoded with DeepSeek                            |",
-    "|                                                       |",
-    "|         Session closed. Thanks for listening.         |",
-    "|                                                       |",
-    "+-------------------------------------------------------+"
+    "+---------------------------------------------------------------+",
+    "|                                                               |",
+    "|  > Overlay source: github.com/pasha-iden/ep133-overlay-vol-1  |",
+    "|  > Built with Python / data-driven                            |",
+    "|  > Vibecoded with DeepSeek                                    |",
+    "|                                                               |",
+    "|             Session closed. Thanks for listening.             |",
+    "|                                                               |",
+    "+---------------------------------------------------------------+"
 ]
